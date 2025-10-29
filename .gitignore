@@ -1,2 +1,9 @@
-AGENTS.md
+# Environment variables
+.env
+.env.local
+
+# Legacy environment configuration (deprecated in favor of .env)
 env.js
+
+# Development files
+AGENTS.md

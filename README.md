@@ -17,19 +17,84 @@ Pokémon Team Analyzer is a single-page web app that evaluates teams of two to s
 
 ## Getting Started
 
-1. Clone the repository and switch into the project folder.
-2. Copy `env.example.js` to `env.js`, then update `WEBHOOK_URL` with your analyzer webhook endpoint.
-3. Launch a local server:
-   - `python3 -m http.server 5173`
-   - or `npx http-server .`
-4. Visit `http://localhost:5173` in your browser and enable clipboard access if prompted.
-5. Enter 2–6 Pokémon names, then click **Analyze Team** to trigger the webhook-driven analysis.
+### Deployment on Netlify (Recommended)
+
+1. **Deploy to Netlify:**
+   - Connect your repository to Netlify
+   - Netlify will automatically detect the configuration from `netlify.toml`
+
+2. **Set Environment Variables in Netlify:**
+   - Go to your site's dashboard
+   - Navigate to **Project configuration > Environment variables**
+   - Add variable:
+     - Key: `WEBHOOK_URL`
+     - Value: Your n8n webhook URL (e.g., `https://n8n.example.com/webhook/pokemon-team-analyzer`)
+     - Scopes: `Functions` (required)
+     - Deploy contexts: `Production`, `Deploy Previews`, `Branch deploys` (as needed)
+
+3. **Deploy:**
+   - Trigger a new deploy (manual or push to your branch)
+   - Visit your Netlify site URL
+   - Enter 2–6 Pokémon names and click **Analyze Team**
+
+### Local Development with Netlify Dev
+
+1. **Install Netlify CLI:**
+   ```bash
+   npm install -g netlify-cli
+   ```
+
+2. **Configure Environment Variables:**
+   ```bash
+   # Copy the example file
+   cp .env.example .env
+
+   # Edit .env and set your webhook URL
+   # WEBHOOK_URL=https://n8n.example.com/webhook/pokemon-team-analyzer
+   ```
+
+3. **Run Netlify Dev:**
+   ```bash
+   netlify dev
+   ```
+
+4. **Visit** `http://localhost:8888` in your browser
+
+### Alternative: Local Development without Netlify
+
+If you want to test the frontend only without the Netlify function:
+
+1. Launch a local server:
+   ```bash
+   python3 -m http.server 5173
+   # or
+   npx http-server .
+   ```
+
+2. Note: The Netlify function won't be available. You'll need to modify the code to point directly to your webhook or mock the responses.
 
 ## Configuration
 
-- Runtime configuration lives in `env.js`, which must define `window.pokemonTeamAnalyzerEnv.WEBHOOK_URL`. The repository includes `env.example.js`; copy it to `env.js` and set the value for your environment.
-- Avoid committing personal or production webhook URLs. The `.gitignore` prevents `env.js` from being tracked—keep sensitive endpoints in that local file.
-- If you want to load a differently named config, update the `data-env-script` attribute on the `<body>` element in `index.html` to point at the desired file before building.
+### Netlify Environment Variables
+
+The app uses Netlify Functions to securely proxy requests to your n8n webhook. Configure the following environment variable:
+
+- **WEBHOOK_URL**: Your n8n webhook endpoint URL
+  - Set in: Netlify UI (Project configuration > Environment variables)
+  - For local dev: Create `.env` file (see `.env.example`)
+  - Scope: `Functions` (required for Netlify Functions)
+  - **Never commit** your `.env` file - it's already in `.gitignore`
+
+### Import from .env file (Optional)
+
+You can also import environment variables in bulk from a .env file in the Netlify UI:
+
+1. Go to **Project configuration > Environment variables**
+2. Click **Add a variable > Import from a .env file**
+3. Paste your .env contents
+4. Set scopes and deploy contexts
+
+Learn more: [Netlify Environment Variables Documentation](https://docs.netlify.com/environment-variables/get-started/)
 
 ## Manual Testing Checklist
 
@@ -46,7 +111,31 @@ Pokémon Team Analyzer is a single-page web app that evaluates teams of two to s
 
 ## Project Structure
 
-- `index.html` — complete application markup, styling, and scripting.
-- `README.md` — project overview and onboarding guide (you are here).
+```
+.
+├── index.html                      # Main application (markup, styling, scripting)
+├── netlify/
+│   └── functions/
+│       └── analyze.js             # Netlify Function (proxies to n8n webhook)
+├── netlify.toml                   # Netlify configuration
+├── .env.example                   # Environment variables template
+├── .gitignore                     # Git ignore rules (includes .env)
+└── README.md                      # This file
+```
+
+### Key Files
+
+- **index.html**: Complete single-page application with Tailwind CSS styling and vanilla JavaScript
+- **netlify/functions/analyze.js**: Serverless function that securely proxies requests to your n8n webhook
+- **.env.example**: Template for local environment variables (copy to `.env` for local development)
+- **netlify.toml**: Netlify build configuration (automatically detected on deploy)
+
+## Migration from env.js (Legacy)
+
+If you're using the old `env.js` configuration:
+
+1. The app now uses Netlify Functions exclusively
+2. Set `WEBHOOK_URL` in Netlify UI or `.env` file (not `env.js`)
+3. The `env.js` approach is deprecated but still gitignored for safety
 
 Enjoy building dream Pokémon teams and fine-tuning your battle strategies!

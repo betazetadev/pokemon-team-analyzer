@@ -212,7 +212,7 @@
     }
   </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 text-white relative overflow-x-hidden" data-env-script="./env.js">
+<body class="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 text-white relative overflow-x-hidden">
   
   <!-- Partículas de fondo -->
   <div class="fixed inset-0 overflow-hidden pointer-events-none">
@@ -282,23 +282,11 @@
   </aside>
   <script>
     (function () {
-      const envScriptPath = (document.body?.dataset?.envScript || '').trim();
-      let initialized = false;
+      // Always use Netlify function endpoint
+      // Environment variables are configured in Netlify UI or .env file for local development
+      const WEBHOOK_URL = '/.netlify/functions/analyze';
 
-      function bootstrap() {
-        if (initialized) return;
-        initialized = true;
-        const runtimeConfig = window.pokemonTeamAnalyzerEnv || {};
-
-        // By default, use Netlify function endpoint (works when deployed to Netlify)
-        // For local development, set WEBHOOK_URL in env.js to call the webhook directly
-        const WEBHOOK_URL = typeof runtimeConfig.WEBHOOK_URL === 'string' && runtimeConfig.WEBHOOK_URL.trim().length > 0
-          ? runtimeConfig.WEBHOOK_URL.trim()
-          : '/.netlify/functions/analyze';
-
-        const isWebhookConfigured = WEBHOOK_URL.length > 0;
-
-        console.log('Using endpoint:', WEBHOOK_URL);
+      console.log('Using endpoint:', WEBHOOK_URL);
 
         const typeColors = {
           normal:'#A8A77A', fire:'#EE8130', water:'#6390F0', electric:'#F7D02C', grass:'#7AC74C',
@@ -828,20 +816,6 @@
             gaps
           };
         }
-      }
-
-      if (envScriptPath) {
-        const script = document.createElement('script');
-        script.src = envScriptPath;
-        script.defer = false;
-        script.onload = bootstrap;
-        script.onerror = () => {
-          console.info(`Optional env script not loaded from ${envScriptPath}. Continuing without it.`);
-          bootstrap();
-        };
-        document.head.appendChild(script);
-      } else {
-        bootstrap();
       }
     })();
   </script>
