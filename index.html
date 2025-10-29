@@ -212,7 +212,7 @@
     }
   </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 text-white relative overflow-x-hidden">
+<body class="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 text-white relative overflow-x-hidden" data-env-script="./env.js">
   
   <!-- Partículas de fondo -->
   <div class="fixed inset-0 overflow-hidden pointer-events-none">
@@ -282,7 +282,7 @@
   </aside>
   <script>
     const runtimeConfig = window.pokemonTeamAnalyzerEnv || {};
-    const WEBHOOK_URL = '/api/analyze';
+    const WEBHOOK_URL = '/.netlify/functions/analyze';
     const isWebhookConfigured = WEBHOOK_URL.length > 0;
 
     const typeColors = {
