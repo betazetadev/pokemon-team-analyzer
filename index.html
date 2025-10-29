@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pokémon Team Analyzer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap');
+    
+    * {
+      font-family: 'Poppins', sans-serif;
+    }
+    
+    /* Animaciones */
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    
+    @keyframes shimmer {
+      0% { background-position: -1000px 0; }
+      100% { background-position: 1000px 0; }
+    }
+    
+    .float { animation: float 3s ease-in-out infinite; }
+    .slide-in { animation: slideIn 0.6s ease-out forwards; }
+    .scale-in { animation: scaleIn 0.5s ease-out forwards; }
+    .spin { animation: spin 1s linear infinite; }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Tarjeta estilo Pokémon TCG */
+    .pokemon-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 20px;
+      padding: 3px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .pokemon-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+    
+    .pokemon-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transition: left 0.5s;
+    }
+    
+    .pokemon-card:hover::before {
+      left: 100%;
+    }
+    
+    .card-inner {
+      background: white;
+      border-radius: 18px;
+      overflow: hidden;
+      height: 100%;
+    }
+    
+    .card-header {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      padding: 16px;
+      position: relative;
+    }
+    
+    .card-header.fire { background: linear-gradient(135deg, #FF6B6B 0%, #FFA07A 100%); }
+    .card-header.water { background: linear-gradient(135deg, #4FC3F7 0%, #29B6F6 100%); }
+    .card-header.grass { background: linear-gradient(135deg, #81C784 0%, #66BB6A 100%); }
+    .card-header.electric { background: linear-gradient(135deg, #FFD54F 0%, #FFC107 100%); }
+    .card-header.psychic { background: linear-gradient(135deg, #F06292 0%, #EC407A 100%); }
+    .card-header.dragon { background: linear-gradient(135deg, #7C4DFF 0%, #651FFF 100%); }
+    .card-header.dark { background: linear-gradient(135deg, #6D4C41 0%, #5D4037 100%); }
+    .card-header.ghost { background: linear-gradient(135deg, #9575CD 0%, #7E57C2 100%); }
+    .card-header.steel { background: linear-gradient(135deg, #B0BEC5 0%, #90A4AE 100%); }
+    .card-header.fairy { background: linear-gradient(135deg, #F48FB1 0%, #F06292 100%); }
+    .card-header.fighting { background: linear-gradient(135deg, #E57373 0%, #EF5350 100%); }
+    .card-header.flying { background: linear-gradient(135deg, #A5D6FF 0%, #81C9FA 100%); }
+    .card-header.poison { background: linear-gradient(135deg, #BA68C8 0%, #AB47BC 100%); }
+    .card-header.ground { background: linear-gradient(135deg, #D4A574 0%, #C8975F 100%); }
+    .card-header.rock { background: linear-gradient(135deg, #BCAAA4 0%, #A1887F 100%); }
+    .card-header.bug { background: linear-gradient(135deg, #AED581 0%, #9CCC65 100%); }
+    .card-header.ice { background: linear-gradient(135deg, #80DEEA 0%, #4DD0E1 100%); }
+    .card-header.normal { background: linear-gradient(135deg, #BDBDBD 0%, #9E9E9E 100%); }
+    
+    /* Brillo holográfico */
+    .holo-effect {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(45deg, 
+        transparent 30%, 
+        rgba(255,255,255,0.1) 50%, 
+        transparent 70%);
+      background-size: 200% 200%;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    
+    .pokemon-card:hover .holo-effect {
+      opacity: 1;
+      animation: shimmer 2s infinite;
+    }
+    
+    /* Team Photo Container */
+    .team-photo {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      border-radius: 24px;
+      padding: 4px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .team-photo-inner {
+      background: linear-gradient(to bottom, #1e3a8a, #1e40af);
+      border-radius: 20px;
+      padding: 24px 16px 32px 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    @media (min-width: 768px) {
+      .team-photo-inner {
+        padding: 32px 24px 40px 24px;
+      }
+    }
+    
+    .team-photo-inner::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+      animation: float 6s ease-in-out infinite;
+    }
+    
+    .stat-bar {
+      height: 6px;
+      background: #e2e8f0;
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .stat-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      border-radius: 3px;
+      transition: width 1s ease-out;
+    }
+    
+    /* Partículas flotantes */
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 50%;
+      animation: float 3s ease-in-out infinite;
+    }
+    
+    /* Score card glow */
+    .score-card {
+      position: relative;
+      background: white;
+      border-radius: 24px;
+      overflow: hidden;
+    }
+    
+    .score-card::after {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(45deg, #667eea, #764ba2, #f093fb, #667eea);
+      background-size: 300% 300%;
+      border-radius: 24px;
+      z-index: -1;
+      animation: gradient-rotate 3s ease infinite;
+    }
+    
+    @keyframes gradient-rotate {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 text-white relative overflow-x-hidden">
+  
+  <!-- Partículas de fondo -->
+  <div class="fixed inset-0 overflow-hidden pointer-events-none">
+    <div class="particle" style="top: 10%; left: 10%; animation-delay: 0s;"></div>
+    <div class="particle" style="top: 20%; left: 80%; animation-delay: 1s;"></div>
+    <div class="particle" style="top: 60%; left: 20%; animation-delay: 2s;"></div>
+    <div class="particle" style="top: 80%; left: 70%; animation-delay: 1.5s;"></div>
+    <div class="particle" style="top: 40%; left: 90%; animation-delay: 0.5s;"></div>
+  </div>
+
+  <header class="max-w-7xl mx-auto px-4 pt-8 md:pt-12 pb-6 md:pb-8 relative z-10">
+    <div class="text-center slide-in">
+      <h1 class="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight mb-3">
+        <span class="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-500">
+          Pokémon Team
+        </span>
+        <br/>
+        <span class="text-white drop-shadow-lg">Analyzer</span>
+      </h1>
+      <p class="mt-3 md:mt-4 text-base md:text-lg text-indigo-200 max-w-2xl mx-auto px-4">
+        Build your dream team! Enter 2-6 Pokémon names and discover their combined power, weaknesses, and battle potential.
+      </p>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 pb-20 relative z-10">
+    
+    <!-- Form -->
+    <div class="scale-in bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 md:p-8 shadow-2xl mb-12">
+      <form id="team-form" class="space-y-6">
+        <div class="grid md:grid-cols-3 gap-4">
+          <input class="px-5 py-3 rounded-2xl border-2 border-white/20 bg-white/10 backdrop-blur text-white placeholder-indigo-300 focus:outline-none focus:ring-4 focus:ring-purple-500/50 focus:border-purple-400 transition-all" placeholder="e.g., Charizard" />
+          <input class="px-5 py-3 rounded-2xl border-2 border-white/20 bg-white/10 backdrop-blur text-white placeholder-indigo-300 focus:outline-none focus:ring-4 focus:ring-purple-500/50 focus:border-purple-400 transition-all" placeholder="e.g., Blastoise" />
+          <input class="px-5 py-3 rounded-2xl border-2 border-white/20 bg-white/10 backdrop-blur text-white placeholder-indigo-300 focus:outline-none focus:ring-4 focus:ring-purple-500/50 focus:border-purple-400 transition-all" placeholder="e.g., Venusaur" />
+          <input class="px-5 py-3 rounded-2xl border-2 border-white/20 bg-white/10 backdrop-blur text-white placeholder-indigo-300 focus:outline-none focus:ring-4 focus:ring-purple-500/50 focus:border-purple-400 transition-all" placeholder="e.g., Pikachu" />
+          <input class="px-5 py-3 rounded-2xl border-2 border-white/20 bg-white/10 backdrop-blur text-white placeholder-indigo-300 focus:outline-none focus:ring-4 focus:ring-purple-500/50 focus:border-purple-400 transition-all" placeholder="e.g., Gengar" />
+          <input class="px-5 py-3 rounded-2xl border-2 border-white/20 bg-white/10 backdrop-blur text-white placeholder-indigo-300 focus:outline-none focus:ring-4 focus:ring-purple-500/50 focus:border-purple-400 transition-all" placeholder="e.g., Dragonite" />
+        </div>
+        
+        <div class="flex flex-col sm:flex-row items-center gap-4">
+          <button id="analyze-btn" type="submit"
+                  class="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold px-8 py-4 rounded-2xl transition-all transform hover:scale-105 hover:shadow-2xl">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <path d="m21 21-4.35-4.35"></path>
+            </svg>
+            Analyze Team
+          </button>
+          <span id="form-error" class="text-rose-300 text-sm font-medium"></span>
+        </div>
+      </form>
+    </div>
+
+    <!-- Loader -->
+    <div id="loader" class="hidden flex flex-col items-center gap-4 my-16">
+      <div class="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full spin"></div>
+      <span class="text-xl text-indigo-200 font-medium">Analyzing your team...</span>
+    </div>
+
+    <!-- Results -->
+    <div id="results" class="space-y-12"></div>
+  </main>
+
+  <script src="./env.js"></script>
+  <script>
+    const runtimeConfig = window.pokemonTeamAnalyzerEnv || {};
+    const WEBHOOK_URL = typeof runtimeConfig.WEBHOOK_URL === 'string'
+      ? runtimeConfig.WEBHOOK_URL.trim()
+      : '';
+    const isWebhookConfigured = WEBHOOK_URL.length > 0;
+
+    if (!isWebhookConfigured) {
+      console.warn('WEBHOOK_URL is missing. Create env.js with window.pokemonTeamAnalyzerEnv.WEBHOOK_URL.');
+    }
+
+    const typeColors = {
+      normal:'#A8A77A', fire:'#EE8130', water:'#6390F0', electric:'#F7D02C', grass:'#7AC74C',
+      ice:'#96D9D6', fighting:'#C22E28', poison:'#A33EA1', ground:'#E2BF65', flying:'#A98FF3',
+      psychic:'#F95587', bug:'#A6B91A', rock:'#B6A136', ghost:'#735797', dragon:'#6F35FC',
+      dark:'#705746', steel:'#B7B7CE', fairy:'#D685AD'
+    };
+
+    const $$ = sel => document.querySelector(sel);
+    const resultsEl = $$('#results');
+    const loaderEl  = $$('#loader');
+    const formEl    = $$('#team-form');
+    const errorEl   = $$('#form-error');
+
+    formEl.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorEl.textContent = '';
+      resultsEl.innerHTML = '';
+      const names = [...formEl.querySelectorAll('input')]
+        .map(i => i.value.trim())
+        .filter(Boolean)
+        .slice(0,6);
+
+      if (names.length < 2) {
+        errorEl.textContent = '⚠️ Please enter at least 2 Pokémon names.';
+        return;
+      }
+
+      if (!isWebhookConfigured) {
+        errorEl.textContent = '⚠️ Missing webhook configuration. Set WEBHOOK_URL in env.js.';
+        return;
+      }
+
+      loaderEl.classList.remove('hidden');
+
+      try {
+        const res = await fetch(WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ names })
+        });
+        if (!res.ok) throw new Error('Request failed');
+        const data = await res.json();
+
+        const payload = Array.isArray(data) ? data[0] : data;
+
+        const stats        = typeof payload.stats === 'string' ? JSON.parse(payload.stats) : payload.stats;
+        const highlights   = typeof payload.highlights === 'string' ? JSON.parse(payload.highlights) : payload.highlights;
+        const typeCoverage = typeof payload.type_coverage === 'string' ? JSON.parse(payload.type_coverage) : payload.type_coverage;
+        const team = payload.detailed_members || [];
+        const score = computeTeamScore({ stats, typeCoverage, team });
+        const facts = computeTeamFacts(team, stats, typeCoverage);
+        
+        // Orden: Team Lineup primero, luego Score
+        renderTeamPhoto(team, highlights);
+        renderScore(score, facts);
+        renderHighlights(highlights);
+        renderSummary(payload.title || 'Team Analysis', payload.team_size, stats, typeCoverage);
+        renderTeamCards(team);
+        
+        // Animar las barras de estadísticas después de renderizar
+        setTimeout(() => {
+          document.querySelectorAll('.stat-fill').forEach(bar => {
+            bar.style.width = bar.dataset.width;
+          });
+        }, 100);
+        
+      } catch (err) {
+        errorEl.textContent = '❌ Error fetching team analysis. Please check your connection.';
+        console.error(err);
+      } finally {
+        loaderEl.classList.add('hidden');
+      }
+    });
+
+    function badge(label) {
+      const color = typeColors[label.toLowerCase()] || '#CBD5E1';
+      return `<span class="px-3 py-1 text-xs font-bold rounded-full text-white shadow-lg" style="background:${color}">${label.toUpperCase()}</span>`;
+    }
+
+    function renderScore(score, facts) {
+      const { grade, color, label } = gradeFromScore(score);
+
+      const html = `
+        <div class="slide-in score-card p-6 md:p-8 lg:p-10 shadow-2xl" style="animation-delay: 0.2s;">
+          
+          <!-- Score Principal - CENTRADO Y MÁS GRANDE -->
+          <div class="flex flex-col items-center justify-center text-center gap-6 md:gap-8 mb-8 md:mb-12 py-4 md:py-8">
+            <div>
+              <p class="text-base md:text-lg lg:text-xl uppercase tracking-widest text-indigo-400 font-bold mb-4 md:mb-6">Overall Team Score</p>
+              <div class="flex items-center justify-center gap-8 md:gap-12">
+                <span class="text-8xl md:text-9xl lg:text-[12rem] font-black bg-clip-text text-transparent bg-gradient-to-br ${color} leading-none">${score}</span>
+                <div class="flex flex-col gap-3 md:gap-4">
+                  <span class="inline-flex items-center justify-center w-24 h-24 md:w-32 md:h-32 lg:w-40 lg:h-40 rounded-3xl md:rounded-[2.5rem] text-white bg-gradient-to-br ${color} text-5xl md:text-6xl lg:text-7xl font-black shadow-2xl">
+                    ${grade}
+                  </span>
+                  <span class="text-sm md:text-base lg:text-lg font-bold text-slate-600">${label}</span>
+                </div>
+              </div>
+              <p class="mt-6 md:mt-8 text-slate-600 text-sm md:text-base lg:text-lg max-w-2xl mx-auto">
+                Calculated from base stats, speed, type coverage, and defensive bulk.
+              </p>
+            </div>
+          </div>
+
+          <!-- Grid de estadísticas - Layout mejorado 2x2 -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+            
+            <!-- Excellent - Coverage -->
+            <div class="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl p-4 md:p-5 border-2 border-emerald-200">
+              <div class="flex items-center gap-2 mb-2 md:mb-3">
+                <span class="text-xl md:text-2xl">🎯</span>
+                <div>
+                  <div class="text-xs font-bold text-emerald-700 uppercase">Excellent</div>
+                  <div class="text-xs md:text-sm font-bold text-emerald-800">Type Coverage</div>
+                </div>
+              </div>
+              <div class="text-3xl md:text-4xl font-black text-emerald-600 mb-2">${facts.coverageCount}/18</div>
+              <div class="flex flex-wrap gap-1">
+                ${(facts.uniqueTypes||[]).slice(0,6).map(t=>badge(t)).join(' ')}
+              </div>
+            </div>
+
+            <!-- Competitive - Fastest -->
+            <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-4 md:p-5 border-2 border-blue-200">
+              <div class="flex items-center gap-2 mb-2 md:mb-3">
+                <span class="text-xl md:text-2xl">⚡</span>
+                <div>
+                  <div class="text-xs font-bold text-blue-700 uppercase">Competitive</div>
+                  <div class="text-xs md:text-sm font-bold text-blue-800">Speed Leader</div>
+                </div>
+              </div>
+              <div class="text-xl md:text-2xl font-black text-blue-600 capitalize">${facts.fastest?.name ?? '—'}</div>
+              <div class="text-base md:text-lg font-bold text-blue-700">${facts.fastest?.speed ? `${facts.fastest.speed} SPD` : ''}</div>
+            </div>
+
+            <!-- Balanced - Offense Mix -->
+            <div class="bg-gradient-to-br from-amber-50 to-amber-100 rounded-2xl p-4 md:p-5 border-2 border-amber-200">
+              <div class="flex items-center gap-2 mb-2 md:mb-3">
+                <span class="text-xl md:text-2xl">⚔️</span>
+                <div>
+                  <div class="text-xs font-bold text-amber-700 uppercase">Balanced</div>
+                  <div class="text-xs md:text-sm font-bold text-amber-800">${
+                    (facts.avgAtk!=null && facts.avgSpA!=null)
+                      ? (facts.avgAtk > facts.avgSpA ? 'Physical Focus' : (facts.avgSpA > facts.avgAtk ? 'Special Focus' : 'Mixed Offense'))
+                      : 'Offense Profile'
+                  }</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 md:gap-3">
+                <div class="text-center">
+                  <div class="text-xs text-amber-700 font-semibold">ATK</div>
+                  <div class="text-xl md:text-2xl font-black text-amber-600">${facts.avgAtk ?? '—'}</div>
+                </div>
+                <div class="text-amber-500 text-lg md:text-xl">/</div>
+                <div class="text-center">
+                  <div class="text-xs text-amber-700 font-semibold">SpA</div>
+                  <div class="text-xl md:text-2xl font-black text-amber-600">${facts.avgSpA ?? '—'}</div>
+                </div>
+              </div>
+              <div class="text-xs text-amber-700 mt-2">Bulk: <strong>${facts.bulk ?? '—'}</strong></div>
+            </div>
+
+            <!-- Needs Work - Overlaps -->
+            <div class="bg-gradient-to-br from-rose-50 to-rose-100 rounded-2xl p-4 md:p-5 border-2 border-rose-200">
+              <div class="flex items-center gap-2 mb-2 md:mb-3">
+                <span class="text-xl md:text-2xl">⚠️</span>
+                <div>
+                  <div class="text-xs font-bold text-rose-700 uppercase">Watch Out</div>
+                  <div class="text-xs md:text-sm font-bold text-rose-800">Type Analysis</div>
+                </div>
+              </div>
+              <div class="text-lg md:text-xl font-black text-rose-600">
+                ${facts.mostRepeated
+                  ? `${facts.mostRepeated.type.toUpperCase()} ×${facts.mostRepeated.count}`
+                  : (facts.duplicates>0 ? `${facts.duplicates} overlaps` : 'No overlap ✓')
+                }
+              </div>
+              <div class="text-xs text-rose-700 mt-2">
+                ${(facts.gaps && facts.gaps.length)
+                  ? `Missing: ${facts.gaps.slice(0,3).map(g=>g.toUpperCase()).join(', ')}`
+                  : 'Great coverage!'
+                }
+              </div>
+            </div>
+
+          </div>
+        </div>
+      `;
+      resultsEl.insertAdjacentHTML('beforeend', html);
+    }
+
+    function renderTeamPhoto(team, highlights) {
+      if (!team?.length) return;
+      
+      // Calcular características destacadas de cada Pokémon
+      const teamWithHighlights = team.map(p => {
+        const bst = Object.values(p.stats || {}).reduce((a, b) => a + (b || 0), 0);
+        const topStats = Object.entries(p.stats || {})
+          .filter(([key]) => !key.includes('-'))
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 2);
+        
+        let role = '';
+        const atk = p.stats?.attack || 0;
+        const spa = p.stats?.['special-attack'] || 0;
+        const spd = p.stats?.speed || 0;
+        const hp = p.stats?.hp || 0;
+        const def = p.stats?.defense || 0;
+        
+        if (spd > 100) role = '⚡ Speedster';
+        else if (atk > spa && atk > 100) role = '⚔️ Physical';
+        else if (spa > atk && spa > 100) role = '✨ Special';
+        else if (hp > 90 && def > 90) role = '🛡️ Tank';
+        else if (bst > 540) role = '💪 Powerhouse';
+        else role = '⭐ Balanced';
+        
+        return { ...p, bst, topStats, role };
+      });
+      
+      const members = teamWithHighlights.map((p, idx) => {
+        const imgUrl = p.artwork || p.dream_world || p.sprite || '';
+        const types = (p.types || []).map(t => badge(t)).join(' ');
+        
+        return `
+          <div class="flex flex-col items-center justify-start relative group" style="animation-delay: ${0.1 + idx * 0.1}s; animation: slideIn 0.6s ease-out forwards;">
+            <div class="relative mb-2 float w-full flex justify-center">
+              <img src="${imgUrl}" alt="${p.name}" class="w-36 h-36 md:w-44 md:h-44 object-contain drop-shadow-2xl transition-transform group-hover:scale-110" />
+              <!-- Badge de rol -->
+              <div class="absolute -top-3 -right-3 md:-right-6 bg-gradient-to-br from-indigo-600 to-purple-600 backdrop-blur rounded-full px-3 py-1.5 text-xs font-black text-white shadow-xl border-2 border-white">
+                ${p.role}
+              </div>
+            </div>
+            <div class="mt-4 text-center w-full px-2">
+              <span class="text-lg md:text-xl font-black text-white capitalize drop-shadow-lg block mb-2">${p.name}</span>
+              <div class="flex gap-1.5 justify-center mt-2 mb-3 flex-wrap">${types}</div>
+              <!-- Stats destacadas -->
+              <div class="bg-gradient-to-br from-indigo-900/80 to-purple-900/80 backdrop-blur-sm rounded-xl px-4 py-2.5 border border-white/20 shadow-lg">
+                <div class="text-white font-bold text-sm md:text-base">BST: <span class="text-yellow-300 font-black text-base md:text-lg">${p.bst}</span></div>
+                <div class="text-indigo-200 text-xs md:text-sm font-semibold mt-1">
+                  ${p.topStats.map(([stat, val]) => `${stat.toUpperCase()}: ${val}`).join(' • ')}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      const html = `
+        <div class="slide-in team-photo shadow-2xl" style="animation-delay: 0.1s;">
+          <div class="team-photo-inner relative">
+            <h2 class="text-center text-2xl md:text-3xl lg:text-4xl font-black text-white mb-2 md:mb-3 relative z-10 px-4">
+              🌟 Team Lineup 🌟
+            </h2>
+            <p class="text-center text-indigo-200 text-xs md:text-sm mb-6 md:mb-8 relative z-10 px-4">Your battle-ready squad with their signature roles</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10 relative z-10 px-4 max-w-6xl mx-auto">
+              ${members}
+            </div>
+          </div>
+        </div>
+      `;
+      resultsEl.insertAdjacentHTML('beforeend', html);
+    }
+
+    function renderHighlights(highlights) {
+      if (!highlights) return;
+      
+      const strongest = highlights.strongest;
+      const fastest = highlights.fastest;
+      
+      const html = `
+        <div class="slide-in grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6" style="animation-delay: 0.3s;">
+          ${strongest ? `
+          <div class="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl md:rounded-3xl p-6 md:p-8 shadow-2xl transform hover:scale-105 transition-all">
+            <div class="flex items-center gap-3 md:gap-4 mb-3 md:mb-4">
+              <div class="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-2xl md:text-3xl">💪</div>
+              <div>
+                <h3 class="text-xl md:text-2xl font-black text-white">Strongest</h3>
+                <p class="text-white/80 text-xs md:text-sm">Highest Base Stat Total</p>
+              </div>
+            </div>
+            <p class="text-3xl md:text-4xl font-black text-white capitalize mb-2">${strongest.name}</p>
+            <p class="text-white/90 text-base md:text-lg">Total: <span class="font-black text-xl md:text-2xl">${strongest.total_stats}</span> BST</p>
+          </div>
+          ` : ''}
+          
+          ${fastest ? `
+          <div class="bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl md:rounded-3xl p-6 md:p-8 shadow-2xl transform hover:scale-105 transition-all">
+            <div class="flex items-center gap-3 md:gap-4 mb-3 md:mb-4">
+              <div class="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-2xl md:text-3xl">⚡</div>
+              <div>
+                <h3 class="text-xl md:text-2xl font-black text-white">Fastest</h3>
+                <p class="text-white/80 text-xs md:text-sm">Speed Demon</p>
+              </div>
+            </div>
+            <p class="text-3xl md:text-4xl font-black text-white capitalize mb-2">${fastest.name}</p>
+            <p class="text-white/90 text-base md:text-lg">Speed: <span class="font-black text-xl md:text-2xl">${fastest.speed}</span> SPD</p>
+          </div>
+          ` : ''}
+        </div>
+      `;
+      resultsEl.insertAdjacentHTML('beforeend', html);
+    }
+
+    function renderSummary(title, size, stats, coverage) {
+      const avg = (k) => stats?.[k] ?? '-';
+      const types = (coverage?.unique_types || []).map(t => badge(t)).join(' ');
+      
+      const html = `
+        <div class="slide-in bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl md:rounded-3xl p-6 md:p-8 shadow-2xl" style="animation-delay: 0.4s;">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 md:gap-4 mb-4 md:mb-6">
+            <h2 class="text-xl md:text-2xl font-bold text-white">📊 Team Statistics</h2>
+            <span class="px-3 md:px-4 py-1.5 md:py-2 bg-white/20 rounded-full text-white text-sm md:text-base font-bold">Team Size: ${size}</span>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+            <div class="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl md:rounded-2xl p-5 md:p-6 shadow-xl">
+              <h3 class="text-base md:text-lg font-bold text-white mb-3 md:mb-4 flex items-center gap-2">
+                <span class="text-xl md:text-2xl">📈</span> Average Stats
+              </h3>
+              <div class="space-y-2.5 md:space-y-3">
+                ${statBar('HP', avg('avg_hp'), 200)}
+                ${statBar('Attack', avg('avg_attack'), 200)}
+                ${statBar('Defense', avg('avg_defense'), 200)}
+                ${statBar('Speed', avg('avg_speed'), 200)}
+                <div class="pt-2 border-t border-white/20">
+                  <div class="flex justify-between items-center">
+                    <span class="text-white/90 font-medium text-sm md:text-base">Total BST</span>
+                    <span class="text-xl md:text-2xl font-black text-white">${avg('avg_total')}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-emerald-600 to-teal-700 rounded-xl md:rounded-2xl p-5 md:p-6 shadow-xl">
+              <h3 class="text-base md:text-lg font-bold text-white mb-3 md:mb-4 flex items-center gap-2">
+                <span class="text-xl md:text-2xl">🎯</span> Type Coverage
+              </h3>
+              <div class="flex flex-wrap gap-1.5 md:gap-2 mb-3 md:mb-4">
+                ${types}
+              </div>
+              <div class="bg-white/20 rounded-xl p-3 md:p-4 backdrop-blur">
+                <p class="text-white/90 text-xs md:text-sm mb-2">Coverage Diversity</p>
+                <div class="flex items-center gap-2 md:gap-3">
+                  <div class="flex-1 h-2.5 md:h-3 bg-white/20 rounded-full overflow-hidden">
+                    <div class="h-full bg-gradient-to-r from-yellow-400 to-green-400 rounded-full transition-all duration-1000" 
+                         style="width: ${Math.min((coverage?.coverage_count || 0) / 18 * 100, 100)}%"></div>
+                  </div>
+                  <span class="text-lg md:text-xl font-black text-white">${coverage?.coverage_count || 0}/18</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      resultsEl.insertAdjacentHTML('beforeend', html);
+    }
+
+    function statBar(label, value, max) {
+      const percentage = (value / max) * 100;
+      return `
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-sm font-medium text-white/90">${label}</span>
+            <span class="text-sm font-bold text-white">${value}</span>
+          </div>
+          <div class="stat-bar">
+            <div class="stat-fill" data-width="${percentage}%" style="width: 0%;"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTeamCards(team) {
+      if (!team?.length) return;
+      
+      const cards = team.map((p, idx) => {
+        const primaryType = p.types?.[0]?.toLowerCase() || 'normal';
+        const types = (p.types || []).map(t => badge(t)).join(' ');
+        const imgUrl = p.artwork || p.dream_world || p.sprite || '';
+        
+        return `
+          <div class="pokemon-card scale-in" style="animation-delay: ${0.5 + idx * 0.1}s;">
+            <div class="card-inner">
+              <div class="card-header ${primaryType} relative">
+                <div class="holo-effect"></div>
+                <div class="flex items-start justify-between relative z-10">
+                  <h3 class="text-2xl font-black text-white capitalize drop-shadow-lg">${p.name}</h3>
+                  <span class="px-3 py-1 bg-black/30 backdrop-blur rounded-full text-white text-xs font-bold">#${String(p.id).padStart(3, '0')}</span>
+                </div>
+                <div class="flex gap-2 mt-3 relative z-10">${types}</div>
+              </div>
+              
+              <div class="p-6">
+                <div class="flex items-center justify-center mb-6 relative">
+                  <div class="absolute inset-0 bg-gradient-to-br from-${primaryType}-100 to-${primaryType}-200 rounded-full blur-2xl opacity-30"></div>
+                  <img src="${imgUrl}" alt="${p.name}" class="w-48 h-48 object-contain drop-shadow-2xl relative z-10 float" />
+                </div>
+                
+                <div class="space-y-2">
+                  ${statRow('HP', p.stats?.hp, 255)}
+                  ${statRow('Attack', p.stats?.attack, 255)}
+                  ${statRow('Defense', p.stats?.defense, 255)}
+                  ${statRow('Sp. Atk', p.stats?.['special-attack'], 255)}
+                  ${statRow('Sp. Def', p.stats?.['special-defense'], 255)}
+                  ${statRow('Speed', p.stats?.speed, 255)}
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-slate-200">
+                  <div class="flex justify-between items-center">
+                    <span class="text-sm font-bold text-slate-600">Base Stat Total</span>
+                    <span class="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
+                      ${Object.values(p.stats || {}).reduce((a, b) => a + (b || 0), 0)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      const html = `
+        <div class="slide-in" style="animation-delay: 0.5s;">
+          <h2 class="text-2xl md:text-3xl font-black text-white mb-6 md:mb-8 text-center px-4">
+            <span class="bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-pink-500">
+              Individual Cards
+            </span>
+          </h2>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+            ${cards}
+          </div>
+        </div>
+      `;
+      resultsEl.insertAdjacentHTML('beforeend', html);
+    }
+
+    function statRow(label, value, max) {
+      const percentage = Math.min((value / max) * 100, 100);
+      return `
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-bold text-slate-500 w-16">${label}</span>
+          <div class="flex-1 h-2 bg-slate-200 rounded-full overflow-hidden">
+            <div class="stat-fill h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" 
+                 data-width="${percentage}%" style="width: 0%;"></div>
+          </div>
+          <span class="text-sm font-bold text-slate-700 w-8 text-right">${value || 0}</span>
+        </div>
+      `;
+    }
+    
+    function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+
+    function scale(value, inMin, inMax, outMin, outMax) {
+      if (value == null) return outMin;
+      const t = (value - inMin) / (inMax - inMin);
+      return clamp(outMin + t * (outMax - outMin), outMin, outMax);
+    }
+
+    function gradeFromScore(score) {
+      if (score >= 92) return { grade: 'S', color: 'from-fuchsia-500 to-pink-500', label: 'Legendary' };
+      if (score >= 80) return { grade: 'A', color: 'from-emerald-500 to-teal-500', label: 'Elite' };
+      if (score >= 68) return { grade: 'B', color: 'from-sky-500 to-indigo-500', label: 'Great' };
+      if (score >= 56) return { grade: 'C', color: 'from-amber-500 to-orange-500', label: 'Good' };
+      return { grade: 'D', color: 'from-rose-500 to-red-500', label: 'Needs Work' };
+    }
+
+    function avgFromTeam(team, path) {
+      const vals = team
+        .map(p => path.split('.').reduce((o,k) => o?.[k], p))
+        .filter(v => typeof v === 'number');
+      if (!vals.length) return null;
+      return Math.round(vals.reduce((a,b)=>a+b,0) / vals.length);
+    }
+
+    function computeTeamScore({ stats, typeCoverage, team }) {
+      const base = scale(stats?.avg_total ?? 0, 350, 600, 0, 60);
+      const spd  = scale(stats?.avg_speed ?? 0, 60, 110, 0, 15);
+      const coverageCount = typeCoverage?.coverage_count ?? 0;
+      const coverage = clamp((coverageCount / 18) * 15, 0, 15);
+      
+      const avgHp  = stats?.avg_hp ?? avgFromTeam(team, 'stats.hp') ?? 0;
+      const avgDef = stats?.avg_defense ?? avgFromTeam(team, 'stats.defense') ?? 0;
+      const avgSpD = avgFromTeam(team, 'stats.special-defense') ?? avgDef;
+      const bulkScore = scale((avgHp + avgDef + avgSpD) / 3, 60, 110, 0, 10);
+
+      let penalty = 0;
+      const allTypes = team.flatMap(p => p.types || []);
+      const dupPenalty = Math.max(0, allTypes.length - new Set(allTypes).size);
+      penalty -= clamp(dupPenalty * 1.5, 0, 6);
+      if ((stats?.avg_speed ?? 0) < 45) penalty -= 4;
+
+      return Math.round(clamp(base + spd + coverage + bulkScore + penalty, 0, 100));
+    }
+    
+    function avg(arr){ return arr.length ? Math.round(arr.reduce((a,b)=>a+b,0)/arr.length) : null; }
+
+    function computeTeamFacts(team, stats, typeCoverage) {
+      const fastest   = team.reduce((m,p)=> (p?.stats?.speed??0) > (m?.stats?.speed??-1) ? p : m, null);
+      const strongest = team.reduce((m,p)=> (p?.total_stats??0) > (m?.total_stats??-1) ? p : m, null);
+
+      const atkVals = team.map(p=>p?.stats?.attack).filter(n=>Number.isFinite(n));
+      const spaVals = team.map(p=>p?.stats?.['special-attack']).filter(n=>Number.isFinite(n));
+      const hpVals  = team.map(p=>p?.stats?.hp).filter(n=>Number.isFinite(n));
+      const defVals = team.map(p=>p?.stats?.defense).filter(n=>Number.isFinite(n));
+      const spdVals = team.map(p=>p?.stats?.['special-defense']).filter(n=>Number.isFinite(n));
+
+      const avgAtk = avg(atkVals), avgSpA = avg(spaVals);
+      const bulk   = avg([avg(hpVals)||0, avg(defVals)||0, avg(spdVals)||0]);
+
+      const typesAll = team.flatMap(p=>p.types||[]).map(t=>t.toLowerCase());
+      const uniqTypes = [...new Set(typesAll)];
+      const duplicates = Math.max(0, typesAll.length - uniqTypes.length);
+
+      const allTypes = ['normal','fire','water','electric','grass','ice','fighting','poison','ground','flying','psychic','bug','rock','ghost','dragon','dark','steel','fairy'];
+      const gaps = allTypes.filter(t => !uniqTypes.includes(t)).slice(0,3);
+
+      const countMap = {};
+      for (const t of typesAll) countMap[t] = (countMap[t]||0)+1;
+      const mostRepeated = Object.entries(countMap).sort((a,b)=>b[1]-a[1])[0] || null;
+
+      return {
+        coverageCount: typeCoverage?.coverage_count ?? uniqTypes.length,
+        uniqueTypes: uniqTypes,
+        fastest: fastest ? { name: fastest.name, speed: fastest.stats?.speed ?? null } : null,
+        strongest: strongest ? { name: strongest.name, total: strongest.total_stats ?? null } : null,
+        avgAtk, avgSpA, bulk,
+        duplicates,
+        mostRepeated: mostRepeated ? { type: mostRepeated[0], count: mostRepeated[1] } : null,
+        gaps
+      };
+    }
+  </script>
+</body>
+</html>
