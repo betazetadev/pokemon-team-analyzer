@@ -289,12 +289,16 @@
         if (initialized) return;
         initialized = true;
         const runtimeConfig = window.pokemonTeamAnalyzerEnv || {};
-        const WEBHOOK_URL = typeof runtimeConfig.WEBHOOK_URL === 'string' ? runtimeConfig.WEBHOOK_URL.trim() : '';
+
+        // By default, use Netlify function endpoint (works when deployed to Netlify)
+        // For local development, set WEBHOOK_URL in env.js to call the webhook directly
+        const WEBHOOK_URL = typeof runtimeConfig.WEBHOOK_URL === 'string' && runtimeConfig.WEBHOOK_URL.trim().length > 0
+          ? runtimeConfig.WEBHOOK_URL.trim()
+          : '/.netlify/functions/analyze';
+
         const isWebhookConfigured = WEBHOOK_URL.length > 0;
 
-        if (!isWebhookConfigured) {
-          console.warn('WEBHOOK_URL is missing. Create env.js with window.pokemonTeamAnalyzerEnv.WEBHOOK_URL or update data-env-script.');
-        }
+        console.log('Using endpoint:', WEBHOOK_URL);
 
         const typeColors = {
           normal:'#A8A77A', fire:'#EE8130', water:'#6390F0', electric:'#F7D02C', grass:'#7AC74C',
@@ -323,10 +327,7 @@
             return;
           }
 
-          if (!isWebhookConfigured) {
-            errorEl.textContent = '⚠️ Missing webhook configuration. Set WEBHOOK_URL in env.js.';
-            return;
-          }
+          // Webhook URL is always configured (either Netlify function or custom URL)
 
           loaderEl.classList.remove('hidden');
 
