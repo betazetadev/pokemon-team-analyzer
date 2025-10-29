@@ -29,6 +29,7 @@ Pokémon Team Analyzer is a single-page web app that evaluates teams of two to s
 
 - Runtime configuration lives in `env.js`, which must define `window.pokemonTeamAnalyzerEnv.WEBHOOK_URL`. The repository includes `env.example.js`; copy it to `env.js` and set the value for your environment.
 - Avoid committing personal or production webhook URLs. The `.gitignore` prevents `env.js` from being tracked—keep sensitive endpoints in that local file.
+- If you want to load a differently named config, update the `data-env-script` attribute on the `<body>` element in `index.html` to point at the desired file before building.
 
 ## Manual Testing Checklist
 

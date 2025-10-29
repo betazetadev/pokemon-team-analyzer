@@ -1,7 +1,0 @@
-[build]
-  publish = "."
-
-[edge_functions]
-  [[edge_functions.mounts]]
-    function = "analyze"
-    path = "/api/analyze"
