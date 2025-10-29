@@ -1,0 +1,282 @@
+{
+  "name": "Analizador de Equipo Pokémon Web",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        -368
+      ],
+      "id": "81de5d3a-d7a8-42cf-99f0-9287302e4438",
+      "name": "Manual Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Expecting: { \"names\": [\"charizard\",\"blastoise\", ...] }\nconst names = ($input.first().json.body.names ?? []).slice(0, 6);\nif (names.length < 2) {\n  throw new Error('At least 2 Pokémon names are required');\n}\nreturn names.map(name => ({ json: { pokemon_name: name.toLowerCase().trim() } }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        -256
+      ],
+      "id": "2f4664a9-b735-4c3f-a65f-e553713ad99a",
+      "name": "Preparar Input"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1616,
+        -256
+      ],
+      "id": "db1266ef-e35e-4024-90b7-f4d89314ef64",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "url": "=https://pokeapi.co/api/v2/pokemon/{{ $json.pokemon_name }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1824,
+        -64
+      ],
+      "id": "89f600ac-2b1f-4ecf-9431-f94dbb8574a5",
+      "name": "Obtener Datos Pokémon"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Recibe el JSON completo de PokeAPI desde el nodo HTTP anterior\nconst pokemon = $json;\n\n// Salvaguardas por si la respuesta llegase vacía\nif (!pokemon || !pokemon.stats) {\n  return [{ json: { error: 'Pokemon data missing in Transformar Datos', raw: $json } }];\n}\n\nconst stats = {};\n(pokemon.stats || []).forEach(s => {\n  stats[s.stat.name] = s.base_stat;\n});\n\nconst types = (pokemon.types || []).map(t => t.type.name);\nconst abilities = (pokemon.abilities || []).map(a => a.ability.name);\nconst totalStats = Object.values(stats).reduce((sum, val) => sum + val, 0);\n\nconst sprite      = pokemon.sprites?.front_default ?? null; // 96x96 “clásico”\nconst artwork     = pokemon.sprites?.other?.['official-artwork']?.front_default ?? null; // PNG grande\nconst dreamWorld  = pokemon.sprites?.other?.dream_world?.front_default ?? null; // SVG (algunos no tienen)\n\nreturn {\n  json: {\n    name: pokemon.name,\n    id: pokemon.id,\n    height: pokemon.height,\n    weight: pokemon.weight,\n    stats,\n    total_stats: totalStats,\n    types,\n    abilities,\n    sprite,                  // básico\n    artwork,                 // recomendado en la web\n    dream_world: dreamWorld  // si prefieres SVG cuando exista\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2032,
+        -64
+      ],
+      "id": "4857a2b9-4413-45c6-8782-91ac9a20c0f2",
+      "name": "Transformar Datos"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Recoge lo que llegue del \"done\" del Split.\n// En tu caso, $input.all() tendrá UN ítem y su .json es EL ARRAY completo.\nconst incoming = $input.all().map(i => i.json);\n\n// Si el primero ya es un array, úsalo; si no, quedaría como lista de ítems.\nconst team = Array.isArray(incoming[0]) ? incoming[0] : incoming;\n\n// Salvaguardas útiles\nconst safeStat = (p, k) => (p?.stats?.[k] ?? 0);\n\n// Agregados\nconst teamStats = {\n  avg_hp: 0,\n  avg_attack: 0,\n  avg_defense: 0,\n  avg_speed: 0,\n  avg_total: 0,\n};\n\nteam.forEach(p => {\n  teamStats.avg_hp      += safeStat(p, 'hp');\n  teamStats.avg_attack  += safeStat(p, 'attack');\n  teamStats.avg_defense += safeStat(p, 'defense');\n  teamStats.avg_speed   += safeStat(p, 'speed');\n  teamStats.avg_total   += (p?.total_stats ?? 0);\n});\n\nconst teamSize = team.length || 1;\nObject.keys(teamStats).forEach(k => teamStats[k] = Math.round(teamStats[k] / teamSize));\n\nconst allTypes = team.flatMap(p => p.types || []);\nconst uniqueTypes = [...new Set(allTypes)];\nconst strongest = team.reduce((max, p) => (p.total_stats > (max?.total_stats ?? -1) ? p : max), null) || {};\nconst fastest = team.reduce((max, p) => (safeStat(p, 'speed') > safeStat(max, 'speed') ? p : max), null) || {};\n\nreturn {\n  json: {\n    team_size: team.length,\n    team_members: team.map(p => p.name),\n    team_stats: teamStats,\n    type_coverage: {\n      unique_types: uniqueTypes,\n      coverage_count: uniqueTypes.length,\n      total_types: allTypes.length\n    },\n    highlights: {\n      strongest: strongest?.name ? { name: strongest.name, total_stats: strongest.total_stats } : null,\n      fastest: fastest?.name ? { name: fastest.name, speed: fastest.stats?.speed } : null\n    },\n    detailed_members: team\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1824,
+        -272
+      ],
+      "id": "5d8a6bf9-afe2-457a-ba3e-6511fa79dabf",
+      "name": "Analizar Equipo"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1b86af65-21d6-412d-93d1-0c2c39769068",
+              "name": "title",
+              "value": "Pokémon Team Analysis",
+              "type": "string"
+            },
+            {
+              "id": "5c73ae7e-cec2-4c5e-97c0-55aa64ed2bcf",
+              "name": "team_size",
+              "value": "={{ $json.team_size }}",
+              "type": "number"
+            },
+            {
+              "id": "3c483791-3d24-42a1-86f8-fdfdaa9a44ca",
+              "name": "members",
+              "value": "={{ $json.team_members.join(', ') }}",
+              "type": "string"
+            },
+            {
+              "id": "cd90567f-05bf-408a-a1f8-ab34ba2594e3",
+              "name": "stats",
+              "value": "={{ $json.team_stats }}",
+              "type": "string"
+            },
+            {
+              "id": "003ce4cf-684a-4c3e-b1bf-93b709f0f151",
+              "name": "highlights",
+              "value": "={{ $json.highlights }}",
+              "type": "string"
+            },
+            {
+              "id": "0b3d1583-d6ea-4595-a036-7236232bc92c",
+              "name": "type_coverage",
+              "value": "={{ $json.type_coverage }}",
+              "type": "string"
+            },
+            {
+              "id": "fd083683-4e36-40cc-94bd-01263407c18a",
+              "name": "detailed_members",
+              "value": "={{ $json.detailed_members }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2016,
+        -272
+      ],
+      "id": "0090b3c1-1338-424d-9d27-c5175bf38cf3",
+      "name": "Formatear Salida"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pokemon-team-analyzer",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://pokeanalyzer.netlify.app"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        1136,
+        -160
+      ],
+      "id": "1382c1bd-2f96-4914-bd8a-24c6cf90ee56",
+      "name": "Webhook",
+      "webhookId": "4e8f6e29-f0c6-4283-bf25-964174e54f8f"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2208,
+        -272
+      ],
+      "id": "c57125ef-5408-4d09-9ddd-5b172788ed95",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Preparar Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Input": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Analizar Equipo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Obtener Datos Pokémon",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Datos Pokémon": {
+      "main": [
+        [
+          {
+            "node": "Transformar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transformar Datos": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analizar Equipo": {
+      "main": [
+        [
+          {
+            "node": "Formatear Salida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Preparar Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Salida": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "128c5e18-e99d-4716-a733-5290fbfdae49",
+  "meta": {
+    "instanceId": "eb33e9aab61107ad66c5bf7e89f3f25d9b300db2d14bc727d66c421b052d77fc"
+  },
+  "id": "PZ0OWNvMrBcxbzZa",
+  "tags": []
+}
