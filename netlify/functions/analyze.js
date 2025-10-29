@@ -1,29 +1,38 @@
-export default async (req) => {
-  const N8N = Deno.env.get("N8N_WEBHOOK_URL"); // setéala en Netlify
+const N8N = process.env.N8N_WEBHOOK_URL;
+
+exports.handler = async (event) => {
+  // CORS + preflight
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 204, headers: cors() };
+  }
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, headers: cors(), body: JSON.stringify({ error: 'Use POST' }) };
+  }
   if (!N8N) {
-    return new Response(JSON.stringify({ error: "N8N_WEBHOOK_URL missing" }), {
-      status: 500, headers: { "content-type": "application/json" }
-    });
+    return { statusCode: 500, headers: cors(), body: JSON.stringify({ error: 'N8N_WEBHOOK_URL missing' }) };
   }
 
-  // Solo POST con body JSON { names: [...] }
-  if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Use POST" }), {
-      status: 405, headers: { "content-type": "application/json" }
+  try {
+    const res = await fetch(N8N, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: event.body, // { names: [...] }
     });
+    const text = await res.text();
+    return {
+      statusCode: res.status,
+      headers: { ...cors(), 'content-type': res.headers.get('content-type') || 'application/json' },
+      body: text,
+    };
+  } catch (err) {
+    return { statusCode: 502, headers: cors(), body: JSON.stringify({ error: 'Upstream error', detail: String(err) }) };
   }
+};
 
-  const body = await req.json().catch(() => ({}));
-  const res = await fetch(N8N, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(body),
-  });
-
-  // Propaga respuesta de n8n
-  const text = await res.text();
-  return new Response(text, {
-    status: res.status,
-    headers: { "content-type": res.headers.get("content-type") || "application/json" }
-  });
+function cors() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
 }
