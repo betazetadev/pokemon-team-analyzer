@@ -114,7 +114,8 @@ Learn more: [Netlify Environment Variables Documentation](https://docs.netlify.c
 
 ```
 .
-├── index.html                      # Main application (markup, styling, scripting)
+├── index.html                     # Main application (markup, styling, scripting)
+├── n8n/                           # n8n related files
 ├── netlify/
 │   └── functions/
 │       └── analyze.js             # Netlify Function (proxies to n8n webhook)
