@@ -1,6 +1,6 @@
 # Pokémon Team Analyzer
 
-Pokémon Team Analyzer is a single-page web app that evaluates teams of two to six Pokémon, highlighting strengths, weaknesses, and squad synergy with a polished Trading Card Game-inspired presentation.
+Pokémon Team Analyzer is a single-page web app that evaluates teams of two to six Pokémon, highlighting strengths, weaknesses, and squad synergy with a polished Trading Card Game-inspired presentation. This project was created as a tutorial example demonstrating how to build a serverless web application that integrates with n8n workflows for backend processing.
 
 ## Screenshot
 
@@ -13,7 +13,7 @@ Pokémon Team Analyzer is a single-page web app that evaluates teams of two to s
 - Submit up to six Pokémon and receive overall scoring, grade, and narrative analysis.
 - Animated lineup preview with dynamic team cards styled after the Pokémon TCG.
 - Type coverage insights, stat breakdowns, and highlight callouts for clutch performers.
-- Webhook-powered analysis pipeline ready for n8n or other automation backends.
+- Webhook-powered analysis pipeline using a background n8n workflow (included in the `n8n/` folder).
 
 ## Getting Started
 
@@ -107,7 +107,8 @@ Learn more: [Netlify Environment Variables Documentation](https://docs.netlify.c
 
 - Static HTML powered by the Tailwind CSS CDN.
 - Vanilla JavaScript for form handling, rendering helpers, and animation coordination.
-- External webhook (n8n workflow by default) for team analysis logic.
+- Netlify Functions for secure webhook proxying.
+- n8n workflow for backend team analysis logic (see `n8n/workflow.json` for the tutorial workflow).
 
 ## Project Structure
 
@@ -117,6 +118,8 @@ Learn more: [Netlify Environment Variables Documentation](https://docs.netlify.c
 ├── netlify/
 │   └── functions/
 │       └── analyze.js             # Netlify Function (proxies to n8n webhook)
+├── n8n/
+│   └── workflow.json              # n8n workflow used in the tutorial
 ├── netlify.toml                   # Netlify configuration
 ├── .env.example                   # Environment variables template
 ├── .gitignore                     # Git ignore rules (includes .env)
@@ -127,6 +130,7 @@ Learn more: [Netlify Environment Variables Documentation](https://docs.netlify.c
 
 - **index.html**: Complete single-page application with Tailwind CSS styling and vanilla JavaScript
 - **netlify/functions/analyze.js**: Serverless function that securely proxies requests to your n8n webhook
+- **n8n/workflow.json**: The n8n workflow configuration used in the tutorial - import this into your n8n instance
 - **.env.example**: Template for local environment variables (copy to `.env` for local development)
 - **netlify.toml**: Netlify build configuration (automatically detected on deploy)
 
